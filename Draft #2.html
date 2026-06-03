@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarang '26 — Experience Euphoria</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;400;600;700;900&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ══════════════════════════════════════════════
+   RESET & ROOT
+══════════════════════════════════════════════ */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --crimson: #8c0c1c;
+        --crimson-bright: #b01020;
+        --crimson-glow: #c8182a;
+        --crimson-deep: #5a0812;
+        --black: #060406;
+        --black2: #0a070a;
+        --white: #f5f0f0;
+        --off: #d4c8c8;
+        --muted: #9a8888;
+        --faint: rgba(140, 12, 28, 0.12);
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--black);
+        color: var(--white);
+        font-family: "DM Sans", sans-serif;
+        font-weight: 300;
+        overflow-x: hidden;
+        min-height: 100vh;
+      }
+
+      /* ══════════════════════════════════════════════
+   GRAIN OVERLAY — PERF FIX:
+   Static SVG data-URI on a pseudo-element.
+   No JS animation, no repaints — GPU composited.
+   Slight opacity tweak keeps the look identical.
+══════════════════════════════════════════════ */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9997;
+        opacity: 0.3;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+        background-size: 200px 200px;
+        /* No animation — static grain is barely distinguishable from animated
+           grain at this opacity, and costs zero CPU per frame */
+      }
+
+      /* ── Scratch flash kept but simplified ── */
+      #scratch {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9996;
+        opacity: 0;
+      }
+      #scratch.active {
+        animation: scratchFlash 0.12s ease forwards;
+      }
+      @keyframes scratchFlash {
+        0%   { opacity: 0; }
+        30%  { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      /* ══════════════════════════════════════════════
+   FULLSCREEN MENU
+══════════════════════════════════════════════ */
+      #overlay-menu {
+        position: fixed;
+        inset: 0;
+        background: var(--black2);
+        z-index: 9000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 6rem 8vw 5rem;
+        clip-path: inset(0 0 100% 0);
+        transition: clip-path 0.7s cubic-bezier(0.77, 0, 0.175, 1);
+        pointer-events: none;
+        overflow: hidden;
+      }
+      #overlay-menu.open {
+        clip-path: inset(0 0 0% 0);
+        pointer-events: all;
+      }
+      .menu-bg-text {
+        position: absolute;
+        right: -2vw;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: "Unbounded", sans-serif;
+        font-weight: 900;
+        font-size: 22vw;
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(140, 12, 28, 0.07);
+        pointer-events: none;
+        line-height: 1;
+        letter-spacing: -0.05em;
+        user-select: none;
+      }
+      .menu-nav-list { list-style: none; }
+      .menu-nav-item {
+        overflow: hidden;
+        border-bottom: 1px solid rgba(140, 12, 28, 0.15);
+      }
+      .menu-nav-item:first-child { border-top: 1px solid rgba(140, 12, 28, 0.15); }
+      .menu-nav-link {
+        display: flex;
+        align-items: baseline;
+        gap: 2rem;
+        padding: 1.6rem 0;
+        text-decoration: none;
+        cursor: pointer;
+        transform: translateY(110%);
+        transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      .menu-nav-link::after {
+        content: "";
+        position: absolute;
+        left: 0; bottom: 0; right: 0;
+        height: 1px;
+        background: var(--crimson-glow);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s ease;
+      }
+      .menu-nav-link:hover::after { transform: scaleX(1); }
+      #overlay-menu.open .menu-nav-link { transform: translateY(0); }
+      #overlay-menu.open .menu-nav-item:nth-child(1) .menu-nav-link { transition-delay: 0.1s; }
+      #overlay-menu.open .menu-nav-item:nth-child(2) .menu-nav-link { transition-delay: 0.17s; }
+      #overlay-menu.open .menu-nav-item:nth-child(3) .menu-nav-link { transition-delay: 0.24s; }
+      #overlay-menu.open .menu-nav-item:nth-child(4) .menu-nav-link { transition-delay: 0.31s; }
+      #overlay-menu.open .menu-nav-item:nth-child(5) .menu-nav-link { transition-delay: 0.38s; }
+      .menu-num {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--crimson-glow);
+        letter-spacing: 0.15em;
+        min-width: 3rem;
+        padding-top: 0.2rem;
+      }
+      .menu-label {
+        font-family: "Unbounded", sans-serif;
+        font-size: clamp(2rem, 5vw, 4.5rem);
+        font-weight: 700;
+        color: var(--white);
+        letter-spacing: -0.02em;
+        line-height: 1;
+        transition: color 0.2s;
+      }
+      .menu-nav-link:hover .menu-label { color: var(--crimson-glow); }
+      .menu-sub {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-size: clamp(0.85rem, 1.3vw, 1.1rem);
+        color: var(--muted);
+        margin-left: auto;
+        align-self: center;
+      }
+      .menu-close {
+        position: absolute;
+        top: 2rem; right: 4vw;
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        cursor: pointer;
+        text-transform: uppercase;
+        padding: 0.5rem 1rem;
+        border: 1px solid rgba(255,255,255,0.08);
+        transition: color 0.2s, border-color 0.2s;
+        z-index: 10;
+        background: transparent;
+      }
+      .menu-close:hover { color: var(--white); border-color: rgba(255,255,255,0.2); }
+      .menu-footer-line {
+        position: absolute;
+        bottom: 2rem; left: 8vw;
+        font-size: 0.7rem;
+        letter-spacing: 0.25em;
+        color: rgba(154,136,136,0.4);
+        text-transform: uppercase;
+        font-family: "DM Sans", sans-serif;
+      }
+
+      /* ══════════════════════════════════════════════
+   TOP NAV BAR
+══════════════════════════════════════════════ */
+      #topnav {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 8000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 4vw;
+        height: 70px;
+        background: rgba(6,4,6,0.85);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(140,12,28,0.2);
+      }
+      .nav-logo-wrap { cursor: pointer; display: flex; align-items: center; }
+      .nav-logo-wrap img {
+        height: 52px; width: auto;
+        filter: brightness(1.4) saturate(1.2) drop-shadow(0 0 8px rgba(200,24,42,0.5));
+        transition: filter 0.3s;
+      }
+      .nav-logo-wrap:hover img {
+        filter: brightness(1.8) saturate(1.4) drop-shadow(0 0 16px rgba(200,24,42,0.8));
+      }
+      .nav-right { display: flex; align-items: center; gap: 3rem; }
+      .nav-page-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.3em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .menu-trigger {
+        display: flex; flex-direction: column; gap: 6px;
+        cursor: pointer; padding: 6px;
+      }
+      .menu-trigger span {
+        display: block; height: 1px; background: var(--off);
+        transition: all 0.35s cubic-bezier(0.77,0,0.175,1);
+      }
+      .menu-trigger span:nth-child(1) { width: 32px; }
+      .menu-trigger span:nth-child(2) { width: 22px; }
+      .menu-trigger span:nth-child(3) { width: 28px; }
+      .menu-trigger.open span:nth-child(1) { width: 28px; transform: translateY(7px) rotate(45deg); }
+      .menu-trigger.open span:nth-child(2) { opacity: 0; transform: translateX(-10px); }
+      .menu-trigger.open span:nth-child(3) { width: 28px; transform: translateY(-7px) rotate(-45deg); }
+
+      /* ══════════════════════════════════════════════
+   PAGE SYSTEM
+══════════════════════════════════════════════ */
+      .page { display: none; min-height: 100vh; }
+      .page.active {
+        display: block;
+        animation: sceneIn 0.5s cubic-bezier(0.77,0,0.175,1) both;
+      }
+      @keyframes sceneIn {
+        0%   { opacity: 0; clip-path: inset(0 100% 0 0); }
+        100% { opacity: 1; clip-path: inset(0 0% 0 0); }
+      }
+
+      /* ══════════════════════════════════════════════
+   HOME — HERO
+
+   PERF FIXES applied here:
+   1. .hero-spotlight REMOVED (rotating conic-gradient was the biggest lag source)
+   2. .hero-ghost animation simplified — opacity only, no stroke repaint loop
+   3. .hero-radial uses will-change: opacity so compositor handles it
+   4. All animated elements get will-change / transform3d hints
+══════════════════════════════════════════════ */
+      .hero {
+        min-height: 100vh;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 70px 4vw 0;
+      }
+
+      /* Ghost text — perf fix: animate opacity only (cheap), not stroke color */
+      .hero-ghost {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: "Unbounded", sans-serif;
+        font-weight: 900;
+        font-size: clamp(5rem, 16vw, 17rem);
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(140,12,28,0.18);
+        white-space: nowrap;
+        letter-spacing: 0.05em;
+        user-select: none;
+        pointer-events: none;
+        z-index: 0;
+        /* Simpler animation: opacity only — no stroke-color change (avoids style recalc) */
+        animation: ghostPulse 6s ease-in-out infinite;
+        will-change: opacity;
+      }
+      @keyframes ghostPulse {
+        0%, 100% { opacity: 0.5; }
+        50%       { opacity: 1; }
+      }
+
+      /* Spotlight REPLACED: static radial gradient — no rotation, zero CPU */
+      .hero-radial {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 65% 65% at 50% 40%,
+          rgba(140,12,28,0.13) 0%,
+          rgba(140,12,28,0.05) 50%,
+          transparent 75%
+        );
+        pointer-events: none;
+        z-index: 0;
+        /* Gentle pulse on opacity only — GPU compositor layer */
+        animation: radialPulse 5s ease-in-out infinite;
+        will-change: opacity;
+      }
+      @keyframes radialPulse {
+        0%, 100% { opacity: 0.6; }
+        50%       { opacity: 1; }
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-bottom: 180px;
+        /* Promote to its own layer so animations inside don't cause full repaints */
+        will-change: transform;
+        transform: translateZ(0);
+      }
+      .hero-eyebrow {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.5em;
+        text-transform: uppercase;
+        color: var(--crimson-glow);
+        margin-bottom: 2.5rem;
+        animation: fadeUpEl 1s 0.2s both;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+      }
+      .hero-eyebrow::before,
+      .hero-eyebrow::after {
+        content: "";
+        width: 60px; height: 1px;
+        background: linear-gradient(90deg, transparent, var(--crimson-glow));
+      }
+      .hero-eyebrow::after { transform: scaleX(-1); }
+
+      .hero-logo-wrap {
+        position: relative;
+        margin-bottom: 2rem;
+        animation: logoFlicker 0.08s steps(1) 3, fadeUpEl 1s 0.35s both;
+      }
+      @keyframes logoFlicker {
+        0%, 100% { opacity: 1; }
+        25%, 75%  { opacity: 0.4; }
+        50%       { opacity: 0.9; }
+      }
+      /* Glow: radial gradient behind logo — static, no animation needed here */
+      .hero-logo-wrap::before {
+        content: "";
+        position: absolute;
+        inset: -30px;
+        background: radial-gradient(
+          ellipse 80% 70% at 50% 50%,
+          rgba(200,24,42,0.3) 0%,
+          rgba(140,12,28,0.15) 40%,
+          transparent 70%
+        );
+        pointer-events: none;
+        animation: logoPulse 3s ease-in-out infinite;
+        will-change: opacity;
+      }
+      @keyframes logoPulse {
+        0%, 100% { opacity: 0.7; }
+        50%       { opacity: 1; }
+      }
+      .hero-logo-wrap img {
+        width: min(480px, 80vw);
+        height: auto;
+        display: block;
+        position: relative;
+        filter: brightness(1.5) saturate(1.3)
+          drop-shadow(0 0 30px rgba(200,24,42,0.6))
+          drop-shadow(0 0 60px rgba(140,12,28,0.4));
+      }
+
+      .hero-tagline {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+        color: var(--off);
+        margin-bottom: 0;
+        letter-spacing: 0.02em;
+        animation: fadeUpEl 1s 0.5s both;
+      }
+
+      @keyframes fadeUpEl {
+        from { opacity: 0; transform: translateY(24px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* ── COUNTDOWN ── */
+      .hero-countdown {
+        position: absolute;
+        bottom: 80px;
+        display: flex;
+        gap: 2.5rem;
+        z-index: 2;
+        animation: fadeUpEl 1s 0.65s both;
+        white-space: nowrap;
+        /* Own compositor layer — updates every second without full repaint */
+        will-change: contents;
+        transform: translateZ(0);
+      }
+      .cd-unit { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+      .cd-num {
+        font-family: "Unbounded", sans-serif;
+        font-size: clamp(1.8rem, 4vw, 3.2rem);
+        font-weight: 700;
+        color: var(--white);
+        line-height: 1;
+        background: rgba(140,12,28,0.15);
+        border: 1px solid rgba(140,12,28,0.3);
+        padding: 0.5rem 1rem;
+        min-width: 80px;
+        text-align: center;
+        position: relative;
+        font-variant-numeric: tabular-nums;
+      }
+      .cd-num::before {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; top: 50%;
+        height: 1px;
+        background: rgba(0,0,0,0.4);
+      }
+      .cd-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      /* ── MARQUEE — PERF FIX: translateZ(0) puts it on GPU layer ── */
+      .hero-marquee {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 60px;
+        border-top: 1px solid rgba(140,12,28,0.2);
+        background: rgba(6,4,6,0.7);
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        z-index: 3;
+      }
+      .marquee-inner {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        white-space: nowrap;
+        animation: marqueeScroll 40s linear infinite;
+        /* GPU layer for smooth scroll */
+        will-change: transform;
+        transform: translateZ(0);
+      }
+      .marquee-track { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
+      @keyframes marqueeScroll {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-50%); }
+      }
+      .marquee-item {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0 2rem;
+        white-space: nowrap;
+      }
+      .marquee-dot {
+        width: 4px; height: 4px;
+        background: var(--crimson-glow);
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* ══════════════════════════════════════════════
+   INNER PAGES
+══════════════════════════════════════════════ */
+      .inner-page { padding-top: 70px; min-height: 100vh; }
+      .page-intro {
+        position: relative;
+        padding: 7rem 8vw 5rem;
+        overflow: hidden;
+        border-bottom: 1px solid rgba(140,12,28,0.15);
+      }
+      .page-intro-ghost {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%,-50%);
+        font-family: "Unbounded", sans-serif;
+        font-weight: 900;
+        font-size: clamp(5rem,14vw,14rem);
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(140,12,28,0.06);
+        white-space: nowrap;
+        pointer-events: none;
+        letter-spacing: 0.03em;
+        z-index: 0;
+      }
+      .page-intro-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.45em;
+        text-transform: uppercase;
+        color: var(--crimson-glow);
+        margin-bottom: 1.2rem;
+        position: relative; z-index: 1;
+        display: flex; align-items: center; gap: 1rem;
+      }
+      .page-intro-label::before {
+        content: ""; width: 2rem; height: 1px;
+        background: var(--crimson-glow);
+      }
+      .page-intro-title {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 700;
+        font-size: clamp(2.5rem,6vw,6rem);
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        color: var(--white);
+        position: relative; z-index: 1;
+      }
+      .page-intro-sub {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-size: clamp(0.95rem,1.5vw,1.15rem);
+        color: var(--muted);
+        margin-top: 1.5rem;
+        max-width: 500px;
+        position: relative; z-index: 1;
+      }
+      .page-intro-line {
+        position: absolute;
+        bottom: 0; left: 0;
+        width: 100%; height: 1px;
+        background: linear-gradient(90deg, var(--crimson), transparent 60%);
+      }
+
+      /* ══════════════════════════════════════════════
+   EVENTS PAGE
+══════════════════════════════════════════════ */
+      .events-body { padding: 5rem 8vw; }
+      .events-list { display: flex; flex-direction: column; gap: 0; }
+      .scene-card {
+        display: grid;
+        grid-template-columns: 120px 1fr auto;
+        gap: 0 3rem;
+        align-items: start;
+        padding: 2.5rem 0;
+        border-bottom: 1px solid rgba(140,12,28,0.12);
+        position: relative;
+        overflow: hidden;
+        transition: background 0.3s;
+      }
+      .scene-card::before {
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 0;
+        background: rgba(140,12,28,0.06);
+        transition: width 0.5s cubic-bezier(0.77,0,0.175,1);
+      }
+      .scene-card:hover::before { width: 100%; }
+      .scene-card-glow {
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: var(--crimson-glow);
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 0.4s cubic-bezier(0.77,0,0.175,1);
+      }
+      .scene-card:hover .scene-card-glow { transform: scaleY(1); }
+      .scene-num {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 700;
+        font-size: clamp(2rem,4vw,3.5rem);
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(140,12,28,0.3);
+        line-height: 1;
+        transition: color 0.3s, -webkit-text-stroke-color 0.3s;
+        padding-top: 0.1rem;
+      }
+      .scene-card:hover .scene-num {
+        color: rgba(140,12,28,0.15);
+        -webkit-text-stroke-color: var(--crimson-glow);
+      }
+      .scene-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.58rem;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+        color: var(--crimson-glow);
+        margin-bottom: 0.6rem; margin-top: 0.2rem;
+      }
+      .scene-name {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 600;
+        font-size: clamp(1rem,2vw,1.5rem);
+        color: var(--white);
+        line-height: 1.1; margin-bottom: 0.8rem;
+        letter-spacing: -0.01em;
+      }
+      .scene-desc {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.8; max-width: 600px;
+      }
+      .scene-tag {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        padding: 0.4rem 0.9rem;
+        border: 1px solid rgba(140,12,28,0.35);
+        color: rgba(200,24,42,0.8);
+        white-space: nowrap;
+        align-self: flex-start;
+        margin-top: 0.3rem;
+        background: rgba(140,12,28,0.06);
+      }
+
+      /* ══════════════════════════════════════════════
+   ABOUT PAGE
+══════════════════════════════════════════════ */
+      .about-body {
+        padding: 5rem 8vw;
+        display: grid;
+        grid-template-columns: 1fr 2.5fr;
+        gap: 6rem;
+        align-items: start;
+        position: relative;
+      }
+      .about-devanagari {
+        position: absolute;
+        right: -2vw; top: 0;
+        font-family: "Instrument Serif", serif;
+        font-size: clamp(8rem,22vw,22rem);
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(140,12,28,0.06);
+        pointer-events: none; line-height: 1;
+        user-select: none; z-index: 0;
+      }
+      .about-sidebar { position: sticky; top: 100px; z-index: 1; }
+      .about-timeline { display: flex; flex-direction: column; gap: 0; }
+      .timeline-era {
+        display: flex; gap: 1.2rem;
+        padding: 1.2rem 0;
+        border-bottom: 1px solid rgba(140,12,28,0.1);
+        position: relative;
+      }
+      .timeline-era::before {
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 1px;
+        background: rgba(140,12,28,0.15);
+      }
+      .timeline-year {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 600; font-size: 0.65rem;
+        color: var(--crimson-glow);
+        min-width: 52px; letter-spacing: 0.05em;
+      }
+      .timeline-desc {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.78rem; color: var(--muted); line-height: 1.55;
+      }
+      .about-main { position: relative; z-index: 1; }
+      .about-pull-quote {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-size: clamp(1.4rem,2.8vw,2.4rem);
+        color: var(--white);
+        line-height: 1.3;
+        border-left: 3px solid var(--crimson-glow);
+        padding: 1.5rem 0 1.5rem 2.5rem;
+        margin: 3rem 0;
+        position: relative;
+      }
+      .about-pull-quote::before {
+        content: '"';
+        position: absolute;
+        left: -0.3rem; top: -1rem;
+        font-size: 5rem; color: var(--crimson);
+        opacity: 0.2; line-height: 1;
+        font-family: "Instrument Serif", serif;
+      }
+      .about-text {
+        font-size: 1rem; color: var(--off);
+        line-height: 1.9; margin-bottom: 2rem; font-weight: 300;
+      }
+      .about-text strong { color: var(--white); font-weight: 500; }
+      .about-meta {
+        display: flex; gap: 4rem;
+        margin-top: 3rem; padding-top: 2rem;
+        border-top: 1px solid rgba(140,12,28,0.15);
+        flex-wrap: wrap;
+      }
+      .about-meta-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.6rem; letter-spacing: 0.35em;
+        text-transform: uppercase; color: var(--crimson-glow);
+        margin-bottom: 0.4rem;
+      }
+      .about-meta-val {
+        font-family: "Unbounded", sans-serif;
+        font-size: 0.9rem; font-weight: 400; color: var(--white);
+      }
+
+      /* ══════════════════════════════════════════════
+   REGISTER PAGE
+══════════════════════════════════════════════ */
+      .reg-body {
+        padding: 5rem 8vw;
+        display: grid;
+        grid-template-columns: 1fr 1.6fr;
+        gap: 6rem; align-items: start;
+      }
+      .reg-info-title {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 600; font-size: 1.2rem;
+        color: var(--white); margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+      }
+      .reg-steps { list-style: none; margin-bottom: 2.5rem; }
+      .reg-step {
+        display: flex; gap: 1.5rem; align-items: flex-start;
+        padding: 1.2rem 0;
+        border-bottom: 1px solid rgba(140,12,28,0.12);
+      }
+      .step-n {
+        font-family: "Unbounded", sans-serif;
+        font-size: 1.8rem; font-weight: 700;
+        color: rgba(140,12,28,0.2);
+        line-height: 1; min-width: 3rem;
+        transition: color 0.2s;
+      }
+      .reg-step:hover .step-n { color: rgba(200,24,42,0.5); }
+      .step-title {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.85rem; font-weight: 500;
+        color: var(--white); margin-bottom: 0.3rem;
+        letter-spacing: 0.01em;
+      }
+      .step-body { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+      .reg-deadline {
+        padding: 1.5rem;
+        border: 1px solid rgba(140,12,28,0.25);
+        border-left: 3px solid var(--crimson-glow);
+        background: rgba(140,12,28,0.05);
+      }
+      .reg-dl-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.58rem; letter-spacing: 0.3em;
+        text-transform: uppercase; color: var(--crimson-glow);
+        margin-bottom: 0.3rem;
+      }
+      .reg-dl-val {
+        font-family: "Unbounded", sans-serif;
+        font-size: 0.85rem; color: var(--white);
+      }
+      .callsheet {
+        background: rgba(140,12,28,0.04);
+        border: 1px solid rgba(140,12,28,0.15);
+        position: relative;
+      }
+      .callsheet-header {
+        border-bottom: 1px solid rgba(140,12,28,0.2);
+        padding: 1.5rem 2rem;
+        display: flex; justify-content: space-between;
+        align-items: center; flex-wrap: wrap; gap: 0.5rem;
+      }
+      .callsheet-title {
+        font-family: "Unbounded", sans-serif;
+        font-size: 0.6rem; font-weight: 600;
+        letter-spacing: 0.3em; text-transform: uppercase;
+        color: var(--crimson-glow);
+      }
+      .callsheet-id {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.6rem; letter-spacing: 0.15em; color: var(--muted);
+      }
+      .callsheet-body { padding: 2rem; }
+      .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+      .form-group { margin-bottom: 1.4rem; }
+      .field-label {
+        display: block;
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.58rem; letter-spacing: 0.35em;
+        text-transform: uppercase; color: var(--crimson-glow);
+        margin-bottom: 0.5rem; opacity: 0.9;
+      }
+      .field-slug {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.55rem; letter-spacing: 0.15em;
+        color: rgba(154,136,136,0.4);
+        display: block; margin-bottom: 0.4rem;
+      }
+      input, select, textarea {
+        width: 100%;
+        background: rgba(6,4,6,0.8);
+        border: none;
+        border-bottom: 1px solid rgba(140,12,28,0.3);
+        color: var(--white);
+        padding: 0.8rem 0;
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.9rem; font-weight: 300;
+        outline: none;
+        transition: border-color 0.25s;
+        appearance: none;
+      }
+      input:focus, select:focus, textarea:focus { border-bottom-color: var(--crimson-glow); }
+      input::placeholder, textarea::placeholder {
+        color: rgba(154,136,136,0.25); font-style: italic;
+      }
+      select option { background: #0a070a; color: var(--white); }
+      textarea { resize: vertical; min-height: 90px; padding: 0.8rem 0; }
+      .form-submit {
+        width: 100%;
+        font-family: "Unbounded", sans-serif;
+        font-size: 0.65rem; font-weight: 600;
+        letter-spacing: 0.25em; text-transform: uppercase;
+        padding: 1.2rem;
+        background: var(--crimson);
+        color: var(--white);
+        border: none; cursor: pointer;
+        position: relative; overflow: hidden;
+        transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+        margin-top: 0.5rem;
+      }
+      .form-submit::before {
+        content: "";
+        position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        transform: translateX(-100%);
+        transition: transform 0.4s;
+      }
+      .form-submit:hover::before { transform: translateX(100%); }
+      .form-submit:hover {
+        background: var(--crimson-bright);
+        box-shadow: 0 12px 40px rgba(140,12,28,0.5);
+        transform: translateY(-2px);
+      }
+      .form-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+      #form-error {
+        display: none; margin-top: 1rem;
+        font-size: 0.78rem; color: var(--crimson-glow);
+        text-align: center; letter-spacing: 0.05em;
+      }
+      #form-success { display: none; text-align: center; padding: 5rem 2rem; }
+      .success-title {
+        font-family: "Instrument Serif", serif;
+        font-style: italic; font-size: 2.5rem;
+        color: var(--white); margin-bottom: 0.75rem;
+      }
+      .success-sub { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+
+      /* ══════════════════════════════════════════════
+   LINKS PAGE
+══════════════════════════════════════════════ */
+      .credits-body { padding: 5rem 8vw; max-width: 900px; margin: 0 auto; }
+      .credits-intro {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-size: clamp(1rem,2vw,1.3rem);
+        color: var(--muted); margin-bottom: 4rem; text-align: center;
+      }
+      .credits-list { display: flex; flex-direction: column; gap: 0; }
+      .credit-item {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 2rem; padding: 3rem 0;
+        border-bottom: 1px solid rgba(140,12,28,0.12);
+        position: relative; overflow: hidden;
+      }
+      .credit-item::before {
+        content: "";
+        position: absolute; left: 0; bottom: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, var(--crimson-glow), transparent);
+        transform: scaleX(0); transform-origin: left;
+        transition: transform 0.5s ease;
+      }
+      .credit-item:hover::before { transform: scaleX(1); }
+      .credit-name {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 700;
+        font-size: clamp(1.8rem,4vw,3.2rem);
+        color: var(--white); line-height: 0.95;
+        letter-spacing: -0.03em;
+      }
+      .credit-role {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.65rem; letter-spacing: 0.4em;
+        text-transform: uppercase; color: var(--crimson-glow);
+        margin-top: 0.6rem;
+      }
+      .credit-details {
+        display: flex; flex-direction: column;
+        justify-content: center; gap: 0.6rem;
+        padding-left: 2rem;
+        border-left: 1px solid rgba(140,12,28,0.15);
+      }
+      .credit-detail {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.85rem; color: var(--off);
+        display: flex; align-items: center; gap: 0.8rem;
+      }
+      .credit-detail-icon {
+        font-size: 0.75rem; color: var(--crimson-glow);
+        width: 1rem; text-align: center; flex-shrink: 0;
+      }
+      .credit-detail a { color: var(--off); text-decoration: none; transition: color 0.2s; }
+      .credit-detail a:hover { color: var(--crimson-glow); }
+      .credit-email-full {
+        margin-top: 4rem; text-align: center;
+        padding: 3rem;
+        border: 1px solid rgba(140,12,28,0.2);
+        background: rgba(140,12,28,0.04);
+      }
+      .credit-email-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.6rem; letter-spacing: 0.4em;
+        padding-top: 2rem;
+        text-transform: uppercase; color: var(--crimson-glow);
+        margin-bottom: 1rem;
+      }
+      .credit-email-addr {
+        font-family: "Unbounded", sans-serif;
+        font-size: clamp(1rem,2vw,1.6rem);
+        font-weight: 300; color: var(--white);
+        letter-spacing: -0.02em;
+      }
+      .credit-email-addr a { color: inherit; text-decoration: none; transition: color 0.2s; }
+      .credit-email-addr a:hover { color: var(--crimson-glow); }
+
+      /* ══════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════ */
+      footer {
+        padding: 4rem 8vw;
+        border-top: 1px solid rgba(140,12,28,0.15);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center; gap: 1rem;
+        background: rgba(0,0,0,0.3);
+      }
+      .footer-left { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+      .footer-logo img {
+        height: 36px; width: auto;
+        filter: brightness(1.3) saturate(1) drop-shadow(0 0 6px rgba(200,24,42,0.35));
+        display: block;
+      }
+      .footer-tagline {
+        font-family: "Instrument Serif", serif;
+        font-style: italic; font-size: 0.85rem; color: var(--muted);
+      }
+      .footer-right { text-align: center; margin-top: 0.25rem; }
+      .footer-copy {
+        font-size: 0.68rem; letter-spacing: 0.15em;
+        color: rgba(154,136,136,0.3);
+        text-transform: uppercase;
+        font-family: "DM Sans", sans-serif; line-height: 2;
+      }
+      .footer-school {
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.7rem; letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: rgba(154,136,136,0.5);
+      }
+
+      /* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+      @media (max-width: 900px) {
+        .scene-card { grid-template-columns: 70px 1fr; grid-template-rows: auto auto; }
+        .scene-tag { grid-column: 2; margin-top: 0.8rem; }
+        .about-body { grid-template-columns: 1fr; gap: 3rem; }
+        .about-sidebar { position: static; }
+        .about-devanagari { display: none; }
+        .about-meta { flex-wrap: wrap; gap: 2rem; }
+        .reg-body { grid-template-columns: 1fr; gap: 3rem; }
+        .credit-item { grid-template-columns: 1fr; }
+        .credit-details { border-left: none; padding-left: 0; border-top: 1px solid rgba(140,12,28,0.12); padding-top: 1rem; }
+      }
+      @media (max-width: 600px) {
+        .page-intro { padding: 5rem 5vw 3rem; }
+        .events-body, .about-body, .reg-body, .credits-body { padding: 3rem 5vw; }
+        .callsheet-body { padding: 1.5rem; }
+        .form-row { grid-template-columns: 1fr; }
+        .hero-countdown { gap: 1rem; bottom: 72px; }
+        .cd-num { font-size: 1.3rem; min-width: 56px; padding: 0.4rem 0.5rem; }
+        .menu-nav-link { padding: 1.2rem 0; }
+        .menu-label { font-size: clamp(1.8rem,8vw,3.5rem); }
+        .menu-sub { display: none; }
+        footer { padding: 2.5rem 5vw; }
+        #overlay-menu { padding: 5rem 5vw 4rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- GRAIN: now a CSS ::after pseudo-element, no DOM node, no JS animation -->
+    <div id="scratch"></div>
+
+    <!-- ════ FULLSCREEN OVERLAY MENU ════ -->
+    <div id="overlay-menu">
+      <div class="menu-bg-text">T</div>
+      <button class="menu-close" onclick="closeMenu()">Close ✕</button>
+      <ul class="menu-nav-list">
+        <li class="menu-nav-item">
+          <a class="menu-nav-link" onclick="goTo('home'); closeMenu();">
+            <span class="menu-num">01</span>
+            <span class="menu-label">Home</span>
+            <span class="menu-sub">The opening frame</span>
+          </a>
+        </li>
+        <li class="menu-nav-item">
+          <a class="menu-nav-link" onclick="goTo('events'); closeMenu();">
+            <span class="menu-num">02</span>
+            <span class="menu-label">Events</span>
+            <span class="menu-sub">20 scenes, one stage</span>
+          </a>
+        </li>
+        <li class="menu-nav-item">
+          <a class="menu-nav-link" onclick="goTo('about'); closeMenu();">
+            <span class="menu-num">03</span>
+            <span class="menu-label">About</span>
+            <span class="menu-sub">The story so far</span>
+          </a>
+        </li>
+        <li class="menu-nav-item">
+          <a class="menu-nav-link" onclick="goTo('register'); closeMenu();">
+            <span class="menu-num">04</span>
+            <span class="menu-label">Register</span>
+            <span class="menu-sub">Claim your scene</span>
+          </a>
+        </li>
+        <li class="menu-nav-item">
+          <a class="menu-nav-link" onclick="goTo('links'); closeMenu();">
+            <span class="menu-num">05</span>
+            <span class="menu-label">Links</span>
+            <span class="menu-sub">The credits roll</span>
+          </a>
+        </li>
+      </ul>
+      <div class="menu-footer-line">Tarang '26 — The PSBB Millennium School, Chennai</div>
+    </div>
+
+    <!-- ════ TOP NAV ════ -->
+    <nav id="topnav">
+      <span class="nav-logo-wrap" onclick="goTo('home')">
+        <img src="tarang_logo.png" alt="Tarang '26" />
+      </span>
+      <div class="nav-right">
+        <span class="nav-page-label" id="nav-page-label">Home</span>
+        <div class="menu-trigger" id="menu-trigger" onclick="toggleMenu()">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ════ HOME PAGE ════ -->
+    <div class="page active" id="page-home">
+      <section class="hero">
+        <div class="hero-ghost">TARANG</div>
+        <div class="hero-radial"></div>
+
+        <div class="hero-content">
+          <div class="hero-eyebrow">Evolution of Indian Cinema</div>
+          <div class="hero-logo-wrap">
+            <img src="tarang_logo.png" alt="Tarang '26" />
+          </div>
+          <p class="hero-tagline">
+            Tarang is an annual cultural extravaganza that brings together talented and enthusiastic participants from various schools across Chennai. It is a reputed event that has been taking place for more than 10 years now, helping in identifying and honing the talents of numerous students.
+          </p>
+        </div>
+
+        <div class="hero-countdown">
+          <div class="cd-unit"><div class="cd-num" id="cd-d">––</div><div class="cd-label">Days</div></div>
+          <div class="cd-unit"><div class="cd-num" id="cd-h">––</div><div class="cd-label">Hours</div></div>
+          <div class="cd-unit"><div class="cd-num" id="cd-m">––</div><div class="cd-label">Minutes</div></div>
+          <div class="cd-unit"><div class="cd-num" id="cd-s">––</div><div class="cd-label">Seconds</div></div>
+        </div>
+
+        <div class="hero-marquee">
+          <div class="marquee-inner" id="marquee-inner"></div>
+        </div>
+      </section>
+
+      <footer>
+        <div class="footer-left">
+          <div class="footer-logo"></div>
+          <div class="footer-tagline">Experience Euphoria</div>
+        </div>
+        <div class="footer-right">
+          <div class="footer-school">The PSBB Millennium School, Chennai</div>
+          <div class="footer-copy">© 2026 Tarang Organising Committee. All rights reserved.</div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- ════ EVENTS PAGE ════ -->
+    <div class="page" id="page-events">
+      <div class="inner-page">
+        <div class="page-intro">
+          <div class="page-intro-ghost">SCENES</div>
+          <div class="page-intro-label">Programme</div>
+          <h1 class="page-intro-title">Events</h1>
+          <p class="page-intro-sub">Twenty scenes. One stage. Lights, camera, compete.</p>
+          <div class="page-intro-line"></div>
+        </div>
+        <div class="events-body">
+          <div class="events-list" id="events-list"></div>
+        </div>
+        <footer>
+          <div class="footer-left"><div class="footer-tagline">Experience Euphoria</div></div>
+          <div class="footer-right">
+            <div class="footer-school">The PSBB Millennium School, Chennai</div>
+            <div class="footer-copy">© 2026 Tarang Organising Committee.</div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ════ ABOUT PAGE ════ -->
+    <div class="page" id="page-about">
+      <div class="inner-page">
+        <div class="page-intro">
+          <div class="page-intro-ghost">TARANG</div>
+          <div class="page-intro-label">Who We Are</div>
+          <h1 class="page-intro-title">About</h1>
+          <p class="page-intro-sub">A decade of culture. A century of cinema.</p>
+          <div class="page-intro-line"></div>
+        </div>
+        <div class="about-body">
+          <div class="about-devanagari">तरंग</div>
+          <aside class="about-sidebar">
+            <div class="about-timeline">
+              <div class="timeline-era"><div class="timeline-year">1913</div><div class="timeline-desc">Raja Harishchandra — India's first feature film. Silent era begins.</div></div>
+              <div class="timeline-era"><div class="timeline-year">1931</div><div class="timeline-desc">Alam Ara — the voice arrives. Talkies transform Indian cinema forever.</div></div>
+              <div class="timeline-era"><div class="timeline-year">1950s</div><div class="timeline-desc">The Golden Age. Guru Dutt, Bimal Roy, Raj Kapoor define a generation.</div></div>
+              <div class="timeline-era"><div class="timeline-year">1975</div><div class="timeline-desc">Sholay — masala cinema peaks. Gabbar becomes immortal.</div></div>
+              <div class="timeline-era"><div class="timeline-year">1990s</div><div class="timeline-desc">Dilwale. Romance era. DDLJ runs 25 years in a single theatre.</div></div>
+              <div class="timeline-era"><div class="timeline-year">2000s</div><div class="timeline-desc">Lagaan. Dil Chahta Hai. New Wave. Parallel cinema finds its audience.</div></div>
+              <div class="timeline-era"><div class="timeline-year">2022</div><div class="timeline-desc">RRR. KGF. Pushpa. Pan-India cinema redraws every border.</div></div>
+              <div class="timeline-era"><div class="timeline-year">Now</div><div class="timeline-desc">OTT. 11 languages. A billion stories. The evolution continues.</div></div>
+            </div>
+          </aside>
+          <main class="about-main">
+            <p class="about-text"><strong>Tarang</strong> is the annual cultural extravaganza of The PSBB Millennium School, Chennai — a festival that has been electrifying the city's school circuit for over a decade. What began as an intimate gathering of talent has grown into one of Chennai's most anticipated inter-school cultural competitions, drawing hundreds of participants from across the city each year.</p>
+            <div class="about-pull-quote">Art is not what you see, but what you make others see — and at Tarang, we make Chennai see something extraordinary.</div>
+            <p class="about-text">For <strong>Tarang '26</strong>, we turn the spotlight on the <strong>Evolution of Indian Cinema</strong> — a journey spanning more than a century, from the silent silhouettes of Raja Harishchandra to the thundering spectacle of RRR. Indian cinema isn't just an art form. It's a mirror held up to a billion lives, reflecting our languages, our conflicts, our joy, our grief, and our relentless hunger for story.</p>
+            <p class="about-text">This year's fest is a love letter to that journey. Every event, every performance, every competition is infused with the spirit of cinema — its drama, its music, its arguments, its absurdities, its elegance. Whether you're on the court, the stage, or the debate floor, you're part of a story that's still being written.</p>
+            <p class="about-text">Tarang is more than a competition. It's where friendships are formed under stage lights, where students discover voices they didn't know they had, and where schools across Chennai come together in the shared belief that <strong>culture is not a subject — it's a way of being.</strong></p>
+            <div class="about-meta">
+              <div class="about-meta-item"><div class="about-meta-label">Theme</div><div class="about-meta-val">Evolution of Indian Cinema</div></div>
+              <div class="about-meta-item"><div class="about-meta-label">Edition</div><div class="about-meta-val">Tarang '26</div></div>
+              <div class="about-meta-item"><div class="about-meta-label">Hosted by</div><div class="about-meta-val">The PSBB Millennium School</div></div>
+            </div>
+          </main>
+        </div>
+        <footer>
+          <div class="footer-left"><div class="footer-tagline">Experience Euphoria</div></div>
+          <div class="footer-right">
+            <div class="footer-school">The PSBB Millennium School, Chennai</div>
+            <div class="footer-copy">© 2026 Tarang Organising Committee.</div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ════ REGISTER PAGE ════ -->
+    <div class="page" id="page-register">
+      <div class="inner-page">
+        <div class="page-intro">
+          <div class="page-intro-ghost">ACTION</div>
+          <div class="page-intro-label">Participate</div>
+          <h1 class="page-intro-title">Register</h1>
+          <p class="page-intro-sub">Fill in your call sheet. Take your mark. Roll camera.</p>
+          <div class="page-intro-line"></div>
+        </div>
+        <div class="reg-body">
+          <div>
+            <div class="reg-deadline">
+              <div class="reg-dl-label">Registration Deadline</div>
+              <div class="reg-dl-val">To be announced — stay tuned.</div>
+            </div>
+          </div>
+          <div class="callsheet">
+            <div class="callsheet-header">
+              <span class="callsheet-title">Production Call Sheet — Tarang '26</span>
+              <span class="callsheet-id">FORM / REG / 2026</span>
+            </div>
+            <div class="callsheet-body">
+                <div class="callsheet-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 4rem 2rem; gap: 1.8rem;">
+                <div style="font-family:'Instrument Serif',serif; font-style:italic; font-size:1.6rem; color:var(--white);">Ready for your scene?</div>
+                <p style="font-size:0.88rem; color:var(--muted); max-width:360px; line-height:1.8;">Click below to open the official registration form. Fill in your details and submit — the spotlight is yours.</p>
+                <a href="https://forms.gle/uLs8AHhz6N28q74V6" target="_blank" class="form-submit" style="display:inline-block; text-decoration:none; max-width:320px;">
+                  Open Registration Form →
+                </a>
+              </div>
+              </form>
+              <div id="form-success">
+                <div class="success-title">You're In.</div>
+                <div class="success-sub">Your registration has been received.<br />The Tarang team will be in touch shortly.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer>
+          <div class="footer-left"><div class="footer-tagline">Experience Euphoria</div></div>
+          <div class="footer-right">
+            <div class="footer-school">The PSBB Millennium School, Chennai</div>
+            <div class="footer-copy">© 2026 Tarang Organising Committee.</div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ════ LINKS PAGE ════ -->
+    <div class="page" id="page-links">
+      <div class="inner-page">
+        <div class="page-intro">
+          <div class="page-intro-ghost">CREDITS</div>
+          <div class="page-intro-label">Reach Out</div>
+          <h1 class="page-intro-title">Links</h1>
+          <p class="page-intro-sub">Every great film ends with credits. Here are ours.</p>
+          <div class="page-intro-line"></div>
+        </div>
+        <div class="credits-body">
+          <p class="credits-intro">For queries, coordination, and anything else — the team is right here.</p>
+          <div class="credits-list">
+            <div class="credit-item">
+              <div><div class="credit-name">Anandhita</div><div class="credit-role">School Pupil Leader</div></div>
+              <div class="credit-details">
+                <div class="credit-detail"><span class="credit-detail-icon">☎</span><a href="tel:+919940512370">99405 12370</a></div>
+                <div class="credit-detail"><span class="credit-detail-icon">◎</span><a href="https://instagram.com/_anandhita_" target="_blank">@_anandhita_</a></div>
+              </div>
+            </div>
+            <div class="credit-item">
+              <div><div class="credit-name">Ayaan</div><div class="credit-role">School Pupil Leader</div></div>
+              <div class="credit-details">
+                <div class="credit-detail"><span class="credit-detail-icon">☎</span><a href="tel:+918015435257">80154 35257</a></div>
+                <div class="credit-detail"><span class="credit-detail-icon">◎</span><a href="https://instagram.com/ayaa_nn03" target="_blank">@ayaa_nn03</a></div>
+              </div>
+            </div>
+            <div class="credit-item">
+              <div><div class="credit-name">Aarohi</div><div class="credit-role">Cultural Secretary</div></div>
+              <div class="credit-details">
+                <div class="credit-detail"><span class="credit-detail-icon">☎</span><a href="tel:+917305533308">73055 33308</a></div>
+                <div class="credit-detail"><span class="credit-detail-icon">◎</span><a href="https://instagram.com/aar6hi" target="_blank">@aar6hi</a></div>
+              </div>
+            </div>
+            <div class="credit-item">
+              <div><div class="credit-name">Narein</div><div class="credit-role">Cultural Secretary</div></div>
+              <div class="credit-details">
+                <div class="credit-detail"><span class="credit-detail-icon">☎</span><a href="tel:+918122371860">81223 71860</a></div>
+                <div class="credit-detail"><span class="credit-detail-icon">◎</span><a href="https://instagram.com/narein_24" target="_blank">@narein_24</a></div>
+              </div>
+            </div>
+          </div>
+          <div class="credit-item">
+              <div><div class="credit-name">Tarang Rulebook</div>
+              <div class="credit-details">
+              <div class="credit-detail"></div><a href="tarang rulebook'26.pdf" target="_blank">Open Rulebook PDF</a>
+              </div>
+            </div>
+          </div>
+          <div class="credit-email-full">
+            <div class="credit-email-label">Email</div>
+            <div class="credit-email-addr"><a href="mailto:tarang.ay26@gmail.com">tarang.ay26@gmail.com</a></div>
+            <div class="credit-email-label">Instagram</div>
+            <div class="credit-email-addr"><a href="https://www.instagram.com/tarang.2026/" target="_blank">@tarang.26</a></div>
+          </div>
+        </div>
+
+        <footer>
+          <div class="footer-left"><div class="footer-tagline">Experience Euphoria</div></div>
+          <div class="footer-right">
+            <div class="footer-school">The PSBB Millennium School, Chennai</div>
+            <div class="footer-copy">© 2026 Tarang Organising Committee.</div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script>
+      /* ── MENU ── */
+      const overlay = document.getElementById("overlay-menu");
+      const trigger = document.getElementById("menu-trigger");
+      let menuOpen = false;
+      function toggleMenu() {
+        menuOpen = !menuOpen;
+        overlay.classList.toggle("open", menuOpen);
+        trigger.classList.toggle("open", menuOpen);
+        document.body.style.overflow = menuOpen ? "hidden" : "";
+      }
+      function closeMenu() {
+        menuOpen = false;
+        overlay.classList.remove("open");
+        trigger.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      /* ── PAGE NAV ── */
+      const pageLabels = { home:"Home", events:"Events", about:"About", register:"Register", links:"Links" };
+      function goTo(page) {
+        const scratch = document.getElementById("scratch");
+        scratch.classList.remove("active");
+        void scratch.offsetWidth;
+        scratch.classList.add("active");
+        setTimeout(() => {
+          document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+          const t = document.getElementById("page-" + page);
+          if (t) { t.classList.add("active"); window.scrollTo(0, 0); }
+          document.getElementById("nav-page-label").textContent = pageLabels[page] || "";
+        }, 60);
+      }
+
+      /* ── EVENTS DATA ── */
+      const EVENTS = [
+        { n:"01", name:"Girls Basketball",  tag:"Group",        desc:"5 players + 3 substitutes per team. 6-minute matches with halftime. Knockout format. Standard rules apply with 1 timeout. Jerseys must match." },
+        { n:"02", name:"Boys Football",     tag:"Group",        desc:"5-a-side (4 outfield + GK), rolling substitutions allowed. Short matches with kick-ins instead of throw-ins. Standard fouls, cards, and penalties apply. Fair play is mandatory." },
+        { n:"03", name:"Block and Tackle",  tag:"Solo / Group", desc:"A competitive challenge of wit and strategy, where teams navigate obstacles — physical or intellectual — to reach the finish. Rules revealed on the day." },
+        { n:"04", name:"Band",              tag:"Group",        desc:"4–7 members per team. 7–8 minute performance. Live music only — no karaoke or backing tracks. Songs may be in Tamil, Hindi, or English. Judged on arrangement, cohesion, and performance quality." },
+        { n:"05", name:"Green Screen",      tag:"Solo / Group", desc:"2 participants per school. Using humour, creativity, and deduction, guess video clips within 3.5 minutes. No vulgarity. Think fast, speak faster." },
+        { n:"06", name:"Family Feud",       tag:"Group",        desc:"Teams of 4 compete by guessing top survey answers in buzzer rounds. Incorrect answers are passed to opponents. Strategy and knowledge decide the score." },
+        { n:"07", name:"Stress Interview",  tag:"Solo",         desc:"Rapid-fire and unexpected questions designed to test composure under pressure. Judged on communication, wit, and spontaneity. A résumé is required. Conducted in 2 rounds." },
+        { n:"08", name:"Lawyers Up",        tag:"Solo / Group", desc:"Courtroom-style debate — participants argue as prosecution/defense or plaintiff/defendant. Includes preparation time and live argument rounds. Object. Sustain. Win." },
+        { n:"09", name:"Vyavastha",         tag:"Group",        desc:"2-member debate teams across prepared and impromptu rounds. Judged on argument quality, delivery, logic, and rebuttals. Hindi debate event." },
+        { n:"10", name:"Stock Market",      tag:"Solo / Group", desc:"A simulated trading floor where participants buy, sell, and strategise in real time. Financial acumen, risk appetite, and nerve will determine the market winner." },
+        { n:"11", name:"Fashion",           tag:"Solo / Group", desc:"A themed fashion showcase where participants embody an era of Indian cinema through costume, presentation, and attitude. Walk the reel like a runway." },
+        { n:"12", name:"Boys Cricket",      tag:"Group",        desc:"A fast-format cricket tournament — gully rules, big energy. Teams compete in knock-out brackets with all the drama of a season finale, condensed into a single day." },
+        { n:"13", name:"Girls Throwball",   tag:"Group",        desc:"Inter-school throwball competition with standard rules. Teams of 7 compete in a knockout format. Coordination, power, and team synergy will carry the day." },
+        { n:"14", name:"Shipwreck",         tag:"Solo / Group", desc:"Participants take on survival scenario roles and must convince a panel they deserve to be saved. Judged on character portrayal, argumentation, and persuasion. Only one survives." },
+        { n:"15", name:"Dance",             tag:"Group",        desc:"Group dance competition across styles — classical, folk, contemporary, fusion. Judged on choreography, synchronisation, expression, and the sheer electricity of the performance." },
+        { n:"16", name:"Adzap",             tag:"Group",        desc:"2–4 participants receive a random product and must create an advertisement on the spot. 10–15 minutes of prep, 2–3 minutes of madness on stage. Props allowed. Sell it." },
+        { n:"17", name:"Adapt Tunes",       tag:"Solo / Group", desc:"Take a familiar song and reinvent it entirely — different genre, different era, different feeling. Judged on creativity, musicality, and how far the adaptation stretches the original." },
+        { n:"18", name:"Short Film",        tag:"Group",        desc:"A maximum 5-minute film on a given theme. Judged on storytelling, direction, editing, and creative vision. Films must be submitted in advance of the fest." },
+        { n:"19", name:"Quiz",              tag:"Group",        desc:"Teams of 2 in a prelim written round, followed by multi-round finals. Topics span cinema, culture, current affairs, and general knowledge. No negative marking." },
+        { n:"20", name:"Shark Tank",        tag:"Group",        desc:'2-member teams pitch a business idea to a panel of "sharks." Judged on innovation, delivery, financial viability, and the ability to handle tough questions. Make them invest.' },
+      ];
+
+      (function buildEvents() {
+        const list = document.getElementById("events-list");
+        const frag = document.createDocumentFragment();
+        EVENTS.forEach(e => {
+          const div = document.createElement("div");
+          div.className = "scene-card";
+          div.innerHTML = `
+            <div class="scene-card-glow"></div>
+            <div class="scene-num">${e.n}</div>
+            <div>
+              <div class="scene-label">Scene ${e.n}</div>
+              <div class="scene-name">${e.name}</div>
+              <div class="scene-desc">${e.desc}</div>
+            </div>
+            <span class="scene-tag">${e.tag}</span>`;
+          frag.appendChild(div);
+        });
+        list.appendChild(frag);
+      })();
+
+      /* ── MARQUEE ── */
+      const MILESTONES = [
+        {y:"1913",f:"Raja Harishchandra"},{y:"1931",f:"Alam Ara"},{y:"1943",f:"Kismet"},
+        {y:"1957",f:"Pyaasa"},{y:"1960",f:"Mughal-E-Azam"},{y:"1973",f:"Bobby"},
+        {y:"1975",f:"Sholay"},{y:"1979",f:"Kaala Patthar"},{y:"1988",f:"Tezaab"},
+        {y:"1991",f:"Lamhe"},{y:"1994",f:"Hum Aapke Hain Koun..!"},{y:"1995",f:"Dilwale Dulhania Le Jayenge"},
+        {y:"1998",f:"Dil Se"},{y:"2001",f:"Lagaan"},{y:"2001",f:"Dil Chahta Hai"},
+        {y:"2006",f:"Rang De Basanti"},{y:"2008",f:"Jodhaa Akbar"},{y:"2009",f:"3 Idiots"},
+        {y:"2014",f:"Queen"},{y:"2019",f:"Gully Boy"},{y:"2022",f:"RRR"},
+        {y:"2022",f:"KGF Chapter 2"},{y:"2023",f:"Pathaan"},{y:"2024",f:"Kalki 2898 AD"},
+      ];
+
+      (function buildMarquee() {
+        const inner = document.getElementById("marquee-inner");
+        let html = "";
+        const double = [...MILESTONES, ...MILESTONES];
+        double.forEach((m, i) => {
+          html += `<span class="marquee-item">${m.y} &nbsp;·&nbsp; ${m.f}</span>`;
+          if (i < double.length - 1) html += `<span class="marquee-dot"></span>`;
+        });
+        inner.innerHTML = html;
+      })();
+
+      /* ── COUNTDOWN ── */
+      const TARGET_DATE = new Date("2026-06-19T09:00:00");
+      const cdEls = {
+        d: document.getElementById("cd-d"),
+        h: document.getElementById("cd-h"),
+        m: document.getElementById("cd-m"),
+        s: document.getElementById("cd-s"),
+      };
+      function updateCountdown() {
+        const diff = TARGET_DATE - Date.now();
+        if (diff <= 0) {
+          Object.values(cdEls).forEach(el => el.textContent = "00");
+          return;
+        }
+        const pad = n => String(n).padStart(2, "0");
+        cdEls.d.textContent = pad(Math.floor(diff / 86400000));
+        cdEls.h.textContent = pad(Math.floor((diff % 86400000) / 3600000));
+        cdEls.m.textContent = pad(Math.floor((diff % 3600000) / 60000));
+        cdEls.s.textContent = pad(Math.floor((diff % 60000) / 1000));
+      }
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+    </script>
+  </body>
+</html>
